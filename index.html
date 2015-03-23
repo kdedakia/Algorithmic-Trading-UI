@@ -1,0 +1,516 @@
+<! DOCTYPE html>
+<html>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+	<link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+	<link href="css/bootstrap-theme.min.css" rel="stylesheet" media="screen">
+	<script src="bootstrap.min.js"></script>
+	<script src="css/bootstrap-theme.min.js"></script>
+	<script src="chart.min.js"></script>
+
+	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="http://code.highcharts.com/highcharts-more.js"></script>
+	<script src="http://code.highcharts.com/modules/exporting.js"></script>
+<head>
+
+</head>
+
+<body style="background-image: url('bg3.png');">
+<div class="container">
+	<div id="data-div"></div>
+	
+	<div class="row" style="text-align:center;">
+		<div class="col-lg-12">
+			<h1>Amateur Speculators SPECULATION UI</h1>
+			<h2>Cash: $<span id="cash">1,500</span></h2>
+		  	<canvas id="cash-chart" width="960" height="400"></canvas>
+		</div>
+	</div>
+
+	
+
+	<div class="row" style="height:800px;">
+		
+		<div class="col-lg-6"><h1>My Securities</h1>
+		<table id="my_securities" class="table table-striped">
+			<thead>
+				<td>Company</td>
+				<td>Shares</td>
+				<td>Dividend Ratio</td>
+				<td></td>
+			</thead>
+			<tbody>
+				<tr>
+					<td>AAPL</td>
+					<td>14</td>
+					<td>8.466752003669302E-4</td>
+					<td>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		
+		<div class="col-lg-12">
+			<h1>My Orders</h1>
+			<table id="my_orders" class="table table-striped">
+			<thead>
+				<td>Type</td>
+				<td>Company</td>
+				<td>Volume</td>
+				<td>Price</td>
+			</thead>
+			<tbody>
+				<tr>
+					<td>BID</td>
+					<td>TSLA</td>
+					<td>140</td>
+					<td>$14</td>
+				</tr>
+			</tbody>
+		</table>
+		</div>
+		
+	</div>
+
+<!--
+	<div class="row">
+		<div class="span1"></div>
+		<div class="span10" style="text-align:center;">
+			
+
+			<select id="company">
+				<option>AAPL</option>
+				<option>ATVI</option>
+				<option>FB</option>
+				<option>GOOG</option>
+				<option>TSLA</option>
+			</select>
+
+			
+		</div>
+		<div class="span1"></div>
+	</div>
+	
+
+	<div class="row">
+	  <div class="col-lg-1"></div>
+	  <div class="span5">
+		<h1>ASKS</h1>
+		<table id="asks-table" class="table table-striped">
+			<thead>
+		  		<tr>
+		  		<th>Volume</th>
+		  		<th>Price</th>
+		  		</tr>
+	  		</thead>
+	  		<tbody>
+	  			
+	  		</tbody>
+		</table>	  	
+	  </div>
+	  <div class="span5">
+		<h1>BIDS</h1>
+		<table id="bids-table" class="table table-striped">
+			<thead>
+		  		<tr>
+		  		<th>Volume</th>
+		  		<th>Price</th>
+		  		</tr>
+	  		</thead>
+	  		<tbody>
+	  			
+	  		</tbody>
+		</table>	  	
+	  </div>
+	  <div class="span1"></div>
+	</div>
+-->
+
+	<div class="row" style="padding-left:300px;margin-bottom:50px;">
+		<div class="col-lg-12">
+			<h1>Company Net Worth Breakdown</h1>
+			<canvas id="pie-chart" width="500" height="500"></canvas>
+		  	<div style="margin-top:30px;">
+		  		
+		  	<h2>Time Slider</h2>
+		  		<input id="pie-slider" style="width:500px;" type="range" name="points" id="points" value="0" min="0" max="88">
+		  		
+		  	</div>
+		</div>
+	</div>
+	
+	
+
+	<div class="row">
+		
+		
+		<div id="scatterplot-container" style="height: 600px; min-width: 310px; max-width: 960px; margin: 0 auto"></div>
+	</div>
+	
+	
+	
+</div>
+</body>
+
+<script type="text/javascript">
+
+var oldJson;
+var allJson;
+var json;
+var asks;
+var bids;
+var company;
+var cash_series = [];
+var myLineChart;
+var interval = 0;
+var REAL = true;
+companies = [];
+var bid_history_series = [];
+
+//uses real time data
+function getData2(){
+	$.getJSON( "data.json", function(data) {
+		
+		company = $("#company option:selected").text().toLowerCase();
+		oldJson = json;
+		json = JSON.parse(data);
+		
+		if (json["cash"] != "SERVER_NOT_ACTIVE") {
+			setStatus();
+			setMySecurities();
+			setMyOrders();
+			
+
+			asks = json[company]["asks"];
+			bids = json[company]["bids"];
+			asks = asks.sort(c2);
+			bids = bids.sort(c2);
+
+			makeTable("asks");
+			makeTable("bids");
+			
+			getBarData("asks");
+			getBarData("bids");
+			
+		}
+		
+	});	
+}
+
+// uses recorded data
+function getData(){
+	$.getJSON( "/json2/data-" + interval + ".json", function(data) {
+		
+		company = $("#company option:selected").text().toLowerCase();
+		oldJson = json;
+		json = JSON.parse(data);
+		
+		if (json["cash"] != "SERVER_NOT_ACTIVE") {
+			setStatus();
+			setMySecurities();
+			setMyOrders();
+			
+
+			asks = json[company]["asks"];
+			bids = json[company]["bids"];
+			asks = asks.sort(c2);
+			bids = bids.sort(c2);
+
+			makeTable("asks");
+			makeTable("bids");
+			
+			getBarData("asks");
+			getBarData("bids");
+			
+		}
+		
+	});	
+}
+
+function getFullJSON(){
+	$.getJSON( "ALL2.json", function(data) {
+		allJson = data;
+		$("#pie-slider").attr("max",Object.keys(allJson).length);
+		getPieData();
+		getScatterPlotData();
+		// scatterplot(seriesData);
+	});
+}
+
+
+if(REAL) {
+	getData2();
+} else {
+	getFullJSON();
+}
+
+if (typeof json === 'undefined' || json["cash"] == "SERVER_NOT_ACTIVE"){
+	setInterval(function() {
+		try {
+			
+			if(REAL){
+				getData2();	
+			} else {
+				getData();
+			}
+			
+			interval += 1;
+		} catch(err) {
+			alert("no such file!");
+		}
+	},1000);
+} else {
+	alert("SERVER NOT ACTIVE")
+}
+
+$("#pie-slider").change(function(){
+	getPieData();
+});
+
+function getPieData(){
+	
+	var total = 0;
+	var colours = ["#F7464A","#46BFBD","#FDB45C","#FF99FF","#666699","#00CC66","#6600CC","#996633","#FF00FF","#009999","#CC0066"]
+	var highlights = ["#FF5A5E","#5AD3D1","#6600CC","#996633","#003366","#FFC870","#FF99FF","#666699","#00CC66"]
+	highlights = colours;
+	
+	data = []
+	var sliderTime = parseInt($("#pie-slider").val());
+	
+	var i = 0;
+	$.each(allJson[sliderTime]["all_sec"], function(name,security) {
+		
+		data.push(
+		{
+	        value: parseFloat(security.net_worth).toFixed(0),
+	        color:colours[i],
+	        highlight: highlights[i],
+	        label: name
+	    });
+    	++i;
+
+	});	
+
+	ctx = $("#pie-chart").get(0).getContext("2d");
+	// var ctx = document.getElementById("pie-chart").getContext("2d");
+	var options = {animation: false,animateRotate : false,};
+	var myPieChart = new Chart(ctx).Pie(data,options);
+
+}
+
+function setStatus(){
+	cash_series.push(json["cash"]);
+	myLiveChart.addData([json["cash"]], "");
+	$("#cash").text(json["cash"]);
+}
+
+
+
+
+function setMySecurities(){
+	$("#my_securities tbody tr").remove()
+
+	sec = Object.keys(json["my_securities"])
+
+	$.each(sec,function(index,name){
+		security = json["my_securities"][name]
+		if (security.shares > 0) 
+		{
+			var el = "<tr><td>" + name + "</td><td>" + security.shares + "</td><td>" + parseFloat(security.div/100).toFixed(14) + "</td></tr>";
+			$("#my_securities tbody").append(el);	
+		}
+		
+	});
+}
+
+function setMyOrders(){
+	$("#my_orders tbody tr").remove()
+
+	asks = Object.keys(json["my_asks"])
+	bids = Object.keys(json["my_bids"])
+
+	$.each(asks,function(index,name){
+		ask = json["my_asks"][name]
+		var el =  "<tr><td>ASK</td><td>" + name + "</td><td>" + ask.shares + "</td><td>$" + ask.price + "</td></tr>";
+
+		$("#my_orders tbody").append(el);
+	});
+
+	$.each(bids,function(index,name){
+		bid = json["my_bids"][name]
+		var el =  "<tr><td>BID</td><td>" + name + "</td><td>" + bid.shares + "</td><td>$" + bid.price + "</td></tr>";
+
+		$("#my_orders tbody").append(el);
+	});
+}
+
+
+function scatterplot(data){
+    $('#scatterplot-container').highcharts({
+
+        chart: {
+            type: 'bubble',
+            zoomType: 'xy'
+        },
+
+        title: {
+            text: 'BID HISTORY BUBBLE CHART'
+        },
+
+        series: data
+    });
+}
+
+
+// DATA: x = time, y = price, r = volume, company = series
+function getScatterPlotData() {
+	bid_history_hash = {};
+	
+
+	for(var i = 0; i < 10; i++){
+		bids = Object.keys(allJson[i*10]["my_bids"]);
+
+		$.each(bids,function(index,name){
+			bid = allJson[i*10]["my_bids"][name]
+			if ($.inArray(name,Object.keys(bid_history_hash)) == -1) {
+				bid_history_hash[name] = [];
+			}
+			try{
+				bid_history_hash[name].push([i,parseFloat(bid.price),parseInt(bid.shares)]);	
+			} catch(err){
+				x = err;
+			};
+			
+		});
+	}
+	bid_history_keys = Object.keys(bid_history_hash);
+	
+	bid_history_series = [];
+	$.each(bid_history_keys, function(index,name){
+		
+		bid_history_series.push({data:bid_history_hash[name],name:name});
+	});
+
+	scatterplot(bid_history_series);	
+}
+
+
+
+/* DYNAMIC CASH LINE GRAPH */
+var canvas = document.getElementById('cash-chart'),
+    ctx = canvas.getContext('2d'),
+    startingData = {
+      labels: ["","","","","","",""],
+      datasets: [
+          {
+              fillColor: "rgba(220,220,220,0.2)",
+              strokeColor: "rgba(220,220,220,1)",
+              pointColor: "rgba(220,220,220,1)",
+              pointStrokeColor: "#fff",
+              data: []
+          }
+      ]
+    },
+    latestLabel = startingData.labels[6];
+
+// Reduce the animation steps for demo clarity.
+var myLiveChart = new Chart(ctx).Line(startingData, {animationSteps: 15,scaleShowVerticalLines: false,scaleShowHorizontalLines: false});
+
+
+
+
+
+
+/* FAKE DATA FUNCTIONS */
+//oType = asks, bids
+function makeTable(oType){
+	$("#" + oType + "-table tbody tr").remove();
+
+	$.each(json[company][oType],function(index,order){
+		var el = "<tr><th>" + order.vol + "</th><th>$" + order.price + "</th></tr>";
+		$("#" + oType + "-table tbody").append(el);
+	})
+}
+
+//Compare function to get orders in ascending order
+function c2(a,b) {
+  if (a.price < b.price)
+     return -1;
+  if (a.price > b.price)
+    return 1;
+  return 0;
+}
+
+function barChart(lblArr,barData,ctx){
+	var varData = {
+	    labels: lblArr,
+	    datasets: [
+	        {
+	            label: "My First dataset",
+	            fillColor: "rgba(220,220,220,0.5)",
+	            strokeColor: "rgba(220,220,220,0.8)",
+	            highlightFill: "rgba(220,220,220,0.75)",
+	            highlightStroke: "rgba(220,220,220,1)",
+	            data: barData
+	        }
+	    ]
+	};
+	var options = {animation: false};
+	var myBarChart = new Chart(ctx).Bar(varData, options);
+}
+
+function getBarData(oType){
+	var labels = [];
+	var oData = [];
+	var ctx = document.getElementById(oType + "-chart").getContext("2d");
+
+	$.each(json[company][oType],function(index,order){
+		labels.push(index.toString());
+		oData.push(order.price.toString());
+	});
+
+	barChart(labels,oData,ctx)
+}
+
+
+/* END FAKE DATA FUNCTIONS */
+
+
+/* USELESS SHIT
+
+var cash_x_labels = [1];
+var cash_data = [100];
+
+function updateCashData() {
+	//TODO: when to empty cash line chart data ?
+	cash_data = [];
+	cash_x_labels = [];
+
+	for(var i = 0; i < 5;i++) {
+		cash_x_labels.push(i);
+		cash_data.push(Math.random() * 10000);
+	}
+}
+
+function checkNew(orders,oType){
+	oldOrders = oldJson[company][oType];
+	oldOrders = oldOrders.sort(c2);
+
+	$.each(orders, function(index,newOrder) {
+		if(!$.inArray(newOrder,oldOrders)){
+			newOrder["new"] = true;
+		}
+	});
+
+}
+
+*/
+</script>
+
+</html>
+
+
+
+
+
+

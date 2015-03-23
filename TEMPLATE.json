@@ -1,0 +1,9 @@
+{
+"cash":1500,
+
+"my_securities":{"aapl":{"shares":100,"dividend_ratio":8.466752003669302E-4},"tsla":{"shares":10,"dividend_ratio":8.31-4}},
+
+"my_orders": {"aapl",}
+
+
+}
