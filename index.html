@@ -4,7 +4,7 @@
 	<link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
 	<link href="css/bootstrap-theme.min.css" rel="stylesheet" media="screen">
 	<script src="bootstrap.min.js"></script>
-	<script src="css/bootstrap-theme.min.js"></script>
+	<script src="bootstrap-theme.min.js"></script>
 	<script src="chart.min.js"></script>
 
 	<script src="http://code.highcharts.com/highcharts.js"></script>
@@ -26,7 +26,22 @@
 		</div>
 	</div>
 
+	<div class="row" style="padding-left:300px;margin-bottom:50px;">
+		<div class="col-lg-12">
+			<h1>Company Net Worth Breakdown</h1>
+			<canvas id="pie-chart" width="500" height="500"></canvas>
+		  	<div style="margin-top:30px;">
+		  		
+		  	<h2>Time Slider</h2>
+		  		<input id="pie-slider" style="width:500px;" type="range" name="points" id="points" value="0" min="0" max="88">
+		  	</div>
+		</div>
+	</div>
 	
+	
+	<div class="row">
+		<div id="scatterplot-container" style="height: 600px; min-width: 310px; max-width: 960px; margin: 0 auto"></div>
+	</div>	
 
 	<div class="row" style="height:800px;">
 		
@@ -72,80 +87,8 @@
 		
 	</div>
 
-<!--
-	<div class="row">
-		<div class="span1"></div>
-		<div class="span10" style="text-align:center;">
-			
 
-			<select id="company">
-				<option>AAPL</option>
-				<option>ATVI</option>
-				<option>FB</option>
-				<option>GOOG</option>
-				<option>TSLA</option>
-			</select>
 
-			
-		</div>
-		<div class="span1"></div>
-	</div>
-	
-
-	<div class="row">
-	  <div class="col-lg-1"></div>
-	  <div class="span5">
-		<h1>ASKS</h1>
-		<table id="asks-table" class="table table-striped">
-			<thead>
-		  		<tr>
-		  		<th>Volume</th>
-		  		<th>Price</th>
-		  		</tr>
-	  		</thead>
-	  		<tbody>
-	  			
-	  		</tbody>
-		</table>	  	
-	  </div>
-	  <div class="span5">
-		<h1>BIDS</h1>
-		<table id="bids-table" class="table table-striped">
-			<thead>
-		  		<tr>
-		  		<th>Volume</th>
-		  		<th>Price</th>
-		  		</tr>
-	  		</thead>
-	  		<tbody>
-	  			
-	  		</tbody>
-		</table>	  	
-	  </div>
-	  <div class="span1"></div>
-	</div>
--->
-
-	<div class="row" style="padding-left:300px;margin-bottom:50px;">
-		<div class="col-lg-12">
-			<h1>Company Net Worth Breakdown</h1>
-			<canvas id="pie-chart" width="500" height="500"></canvas>
-		  	<div style="margin-top:30px;">
-		  		
-		  	<h2>Time Slider</h2>
-		  		<input id="pie-slider" style="width:500px;" type="range" name="points" id="points" value="0" min="0" max="88">
-		  		
-		  	</div>
-		</div>
-	</div>
-	
-	
-
-	<div class="row">
-		
-		
-		<div id="scatterplot-container" style="height: 600px; min-width: 310px; max-width: 960px; margin: 0 auto"></div>
-	</div>
 	
 	
 	
@@ -154,7 +97,6 @@
 
 <script type="text/javascript">
 
-var oldJson;
 var allJson;
 var json;
 var asks;
@@ -162,35 +104,46 @@ var bids;
 var company;
 var cash_series = [];
 var myLineChart;
+var myPieChart;
+var cashGraph
 var interval = 0;
-var REAL = true;
+var REAL = false;
 companies = [];
 var bid_history_series = [];
 
+
+onStart();
+
+function onStart(){
+	chooseDataSource();
+	initCashGraph();	
+}
+
+
+/* 
+	INPUT DATA FUNCTIONS
+*/
+function chooseDataSource() {
+	if(REAL) {
+		getRealtimeData();
+	} else {
+		getFullJSON();
+	}
+}
+
 //uses real time data
-function getData2(){
-	$.getJSON( "data.json", function(data) {
+function getRealtimeData(){
+	$.getJSON( "/JSON Files/data.json", function(data) {
 		
 		company = $("#company option:selected").text().toLowerCase();
-		oldJson = json;
+		
 		json = JSON.parse(data);
 		
 		if (json["cash"] != "SERVER_NOT_ACTIVE") {
-			setStatus();
-			setMySecurities();
-			setMyOrders();
+			updateCash();
+			updateMySecurities();
+			updateMyOrders();
 			
-
-			asks = json[company]["asks"];
-			bids = json[company]["bids"];
-			asks = asks.sort(c2);
-			bids = bids.sort(c2);
-
-			makeTable("asks");
-			makeTable("bids");
-			
-			getBarData("asks");
-			getBarData("bids");
 			
 		}
 		
@@ -198,29 +151,18 @@ function getData2(){
 }
 
 // uses recorded data
-function getData(){
-	$.getJSON( "/json2/data-" + interval + ".json", function(data) {
+function getRecordedData(){
+
+	$.getJSON( "/JSON Files/json2/data-" + interval + ".json", function(data) {
 		
 		company = $("#company option:selected").text().toLowerCase();
-		oldJson = json;
+		
 		json = JSON.parse(data);
 		
 		if (json["cash"] != "SERVER_NOT_ACTIVE") {
-			setStatus();
-			setMySecurities();
-			setMyOrders();
-			
-
-			asks = json[company]["asks"];
-			bids = json[company]["bids"];
-			asks = asks.sort(c2);
-			bids = bids.sort(c2);
-
-			makeTable("asks");
-			makeTable("bids");
-			
-			getBarData("asks");
-			getBarData("bids");
+			updateCash();
+			updateMySecurities();
+			updateMyOrders();
 			
 		}
 		
@@ -228,30 +170,24 @@ function getData(){
 }
 
 function getFullJSON(){
-	$.getJSON( "ALL2.json", function(data) {
+	$.getJSON( "/JSON Files/ALL2.json", function(data) {
 		allJson = data;
 		$("#pie-slider").attr("max",Object.keys(allJson).length);
-		getPieData();
+		updatePieChart();
+
 		getScatterPlotData();
-		// scatterplot(seriesData);
 	});
 }
 
-
-if(REAL) {
-	getData2();
-} else {
-	getFullJSON();
-}
 
 if (typeof json === 'undefined' || json["cash"] == "SERVER_NOT_ACTIVE"){
 	setInterval(function() {
 		try {
 			
 			if(REAL){
-				getData2();	
+				getRealtimeData();	
 			} else {
-				getData();
+				getRecordedData();
 			}
 			
 			interval += 1;
@@ -263,51 +199,18 @@ if (typeof json === 'undefined' || json["cash"] == "SERVER_NOT_ACTIVE"){
 	alert("SERVER NOT ACTIVE")
 }
 
-$("#pie-slider").change(function(){
-	getPieData();
-});
 
-function getPieData(){
-	
-	var total = 0;
-	var colours = ["#F7464A","#46BFBD","#FDB45C","#FF99FF","#666699","#00CC66","#6600CC","#996633","#FF00FF","#009999","#CC0066"]
-	var highlights = ["#FF5A5E","#5AD3D1","#6600CC","#996633","#003366","#FFC870","#FF99FF","#666699","#00CC66"]
-	highlights = colours;
-	
-	data = []
-	var sliderTime = parseInt($("#pie-slider").val());
-	
-	var i = 0;
-	$.each(allJson[sliderTime]["all_sec"], function(name,security) {
-		
-		data.push(
-		{
-	        value: parseFloat(security.net_worth).toFixed(0),
-	        color:colours[i],
-	        highlight: highlights[i],
-	        label: name
-	    });
-    	++i;
-
-	});	
-
-	ctx = $("#pie-chart").get(0).getContext("2d");
-	// var ctx = document.getElementById("pie-chart").getContext("2d");
-	var options = {animation: false,animateRotate : false,};
-	var myPieChart = new Chart(ctx).Pie(data,options);
-
-}
-
-function setStatus(){
+// Dynamically update cash, and the cash chart
+function updateCash(){
 	cash_series.push(json["cash"]);
-	myLiveChart.addData([json["cash"]], "");
+	cashGraph.addData([json["cash"]], "");
 	$("#cash").text(json["cash"]);
 }
 
 
 
-
-function setMySecurities(){
+// Update My Securities table
+function updateMySecurities(){
 	$("#my_securities tbody tr").remove()
 
 	sec = Object.keys(json["my_securities"])
@@ -323,7 +226,8 @@ function setMySecurities(){
 	});
 }
 
-function setMyOrders(){
+// Update My Orders table
+function updateMyOrders(){
 	$("#my_orders tbody tr").remove()
 
 	asks = Object.keys(json["my_asks"])
@@ -331,21 +235,29 @@ function setMyOrders(){
 
 	$.each(asks,function(index,name){
 		ask = json["my_asks"][name]
-		var el =  "<tr><td>ASK</td><td>" + name + "</td><td>" + ask.shares + "</td><td>$" + ask.price + "</td></tr>";
+		var el =  "<tr><td>ASK</td><td>" + name + "</td><td>" + ask.shares + "</td><td>$" + parseFloat(ask.price).toFixed(3) + "</td></tr>";
 
 		$("#my_orders tbody").append(el);
 	});
 
 	$.each(bids,function(index,name){
 		bid = json["my_bids"][name]
-		var el =  "<tr><td>BID</td><td>" + name + "</td><td>" + bid.shares + "</td><td>$" + bid.price + "</td></tr>";
+		var el =  "<tr><td>BID</td><td>" + name + "</td><td>" + bid.shares + "</td><td>$" + parseFloat(bid.price).toFixed(3) + "</td></tr>";
 
 		$("#my_orders tbody").append(el);
 	});
 }
 
 
-function scatterplot(data){
+
+
+/*
+
+CHART FUNCTIONS
+
+*/
+
+function initScatterplot(data){
     $('#scatterplot-container').highcharts({
 
         chart: {
@@ -391,120 +303,71 @@ function getScatterPlotData() {
 		bid_history_series.push({data:bid_history_hash[name],name:name});
 	});
 
-	scatterplot(bid_history_series);	
+	initScatterplot(bid_history_series);	
 }
-
-
 
 /* DYNAMIC CASH LINE GRAPH */
-var canvas = document.getElementById('cash-chart'),
-    ctx = canvas.getContext('2d'),
-    startingData = {
-      labels: ["","","","","","",""],
-      datasets: [
-          {
-              fillColor: "rgba(220,220,220,0.2)",
-              strokeColor: "rgba(220,220,220,1)",
-              pointColor: "rgba(220,220,220,1)",
-              pointStrokeColor: "#fff",
-              data: []
-          }
-      ]
-    },
-    latestLabel = startingData.labels[6];
+function initCashGraph(){
+	
+	var canvas = document.getElementById('cash-chart'),
+	    ctx = canvas.getContext('2d'),
+	    startingData = {
+	      labels: ["","","","","","",""],
+	      datasets: [
+	          {
+	              fillColor: "rgba(220,220,220,0.2)",
+	              strokeColor: "rgba(220,220,220,1)",
+	              pointColor: "rgba(220,220,220,1)",
+	              pointStrokeColor: "#fff",
+	              data: []
+	          }
+	      ]
+	    },
+	    latestLabel = startingData.labels[6];
 
-// Reduce the animation steps for demo clarity.
-var myLiveChart = new Chart(ctx).Line(startingData, {animationSteps: 15,scaleShowVerticalLines: false,scaleShowHorizontalLines: false});
-
-
-
-
-
-
-/* FAKE DATA FUNCTIONS */
-//oType = asks, bids
-function makeTable(oType){
-	$("#" + oType + "-table tbody tr").remove();
-
-	$.each(json[company][oType],function(index,order){
-		var el = "<tr><th>" + order.vol + "</th><th>$" + order.price + "</th></tr>";
-		$("#" + oType + "-table tbody").append(el);
-	})
-}
-
-//Compare function to get orders in ascending order
-function c2(a,b) {
-  if (a.price < b.price)
-     return -1;
-  if (a.price > b.price)
-    return 1;
-  return 0;
-}
-
-function barChart(lblArr,barData,ctx){
-	var varData = {
-	    labels: lblArr,
-	    datasets: [
-	        {
-	            label: "My First dataset",
-	            fillColor: "rgba(220,220,220,0.5)",
-	            strokeColor: "rgba(220,220,220,0.8)",
-	            highlightFill: "rgba(220,220,220,0.75)",
-	            highlightStroke: "rgba(220,220,220,1)",
-	            data: barData
-	        }
-	    ]
-	};
-	var options = {animation: false};
-	var myBarChart = new Chart(ctx).Bar(varData, options);
-}
-
-function getBarData(oType){
-	var labels = [];
-	var oData = [];
-	var ctx = document.getElementById(oType + "-chart").getContext("2d");
-
-	$.each(json[company][oType],function(index,order){
-		labels.push(index.toString());
-		oData.push(order.price.toString());
-	});
-
-	barChart(labels,oData,ctx)
+	// Reduce the animation steps for demo clarity.
+		cashGraph = new Chart(ctx).Line(startingData, {animationSteps: 15,scaleShowVerticalLines: false,scaleShowHorizontalLines: false});	
 }
 
 
-/* END FAKE DATA FUNCTIONS */
+function updatePieChart(){
+	
+	var total = 0;
+	var colours = ["#F7464A","#46BFBD","#FDB45C","#FF99FF","#666699","#00CC66","#6600CC","#996633","#FF00FF","#009999","#CC0066"]
+	var highlights = ["#FF5A5E","#5AD3D1","#6600CC","#996633","#003366","#FFC870","#FF99FF","#666699","#00CC66"]
+	highlights = colours;
+	
+	data = []
+	var sliderTime = parseInt($("#pie-slider").val());
+	
+	$('#pie-chart').replaceWith('<canvas id="pie-chart" width="500" height="500"></canvas>');
 
+	var i = 0;
+	$.each(allJson[sliderTime]["all_sec"], function(name,security) {
+		
+		// myPieChart.removeData(0);
+		data.push(
+		{
+	        value: parseFloat(security.net_worth).toFixed(0),
+	        color:colours[i],
+	        highlight: highlights[i],
+	        label: name
+	    });
+    	++i;
 
-/* USELESS SHIT
+	});	
 
-var cash_x_labels = [1];
-var cash_data = [100];
-
-function updateCashData() {
-	//TODO: when to empty cash line chart data ?
-	cash_data = [];
-	cash_x_labels = [];
-
-	for(var i = 0; i < 5;i++) {
-		cash_x_labels.push(i);
-		cash_data.push(Math.random() * 10000);
-	}
+	ctx = $("#pie-chart").get(0).getContext("2d");
+	var options = {animation: false,animateRotate : false,};
+	myPieChart = new Chart(ctx).Pie(data,options);
 }
 
-function checkNew(orders,oType){
-	oldOrders = oldJson[company][oType];
-	oldOrders = oldOrders.sort(c2);
+$("#pie-slider").change(function(){
+	updatePieChart();
+});
 
-	$.each(orders, function(index,newOrder) {
-		if(!$.inArray(newOrder,oldOrders)){
-			newOrder["new"] = true;
-		}
-	});
 
-}
 
-*/
 </script>
 
 </html>
